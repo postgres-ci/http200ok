@@ -21,8 +21,8 @@ const (
 	put
 )
 
-func New() *server {
-	return &server{
+func New() *Server {
+	return &Server{
 		router: httprouter.New(),
 		errorHandler: func(rw http.ResponseWriter, _ *http.Request, err error) {
 
@@ -42,7 +42,7 @@ func New() *server {
 	}
 }
 
-type server struct {
+type Server struct {
 	router   *httprouter.Router
 	handlers []Handler
 
@@ -51,56 +51,56 @@ type server struct {
 	methodNotAllowedHandler http.HandlerFunc
 }
 
-func (s *server) SetErrorHandler(handler ErrorHandler) {
+func (s *Server) SetErrorHandler(handler ErrorHandler) {
 	s.errorHandler = handler
 }
 
-func (s *server) SetNotFoundHandler(handler http.HandlerFunc) {
+func (s *Server) SetNotFoundHandler(handler http.HandlerFunc) {
 	s.notFoundHandler = handler
 }
 
-func (s *server) SetMethodNotAllowedHandler(handler http.HandlerFunc) {
+func (s *Server) SetMethodNotAllowedHandler(handler http.HandlerFunc) {
 	s.methodNotAllowedHandler = handler
 }
 
-func (s *server) Use(handler ...Handler) {
+func (s *Server) Use(handler ...Handler) {
 
 	s.handlers = append(s.handlers, handler...)
 }
 
-func (s *server) Delete(pattern string, handlers ...Handler) {
+func (s *Server) Delete(pattern string, handlers ...Handler) {
 
 	s.add(delete, pattern, handlers)
 }
 
-func (s *server) Get(pattern string, handlers ...Handler) {
+func (s *Server) Get(pattern string, handlers ...Handler) {
 
 	s.add(get, pattern, handlers)
 }
 
-func (s *server) Head(pattern string, handlers ...Handler) {
+func (s *Server) Head(pattern string, handlers ...Handler) {
 
 	s.add(head, pattern, handlers)
 }
 
-func (s *server) Post(pattern string, handlers ...Handler) {
+func (s *Server) Post(pattern string, handlers ...Handler) {
 
 	s.add(post, pattern, handlers)
 }
 
-func (s *server) Put(pattern string, handlers ...Handler) {
+func (s *Server) Put(pattern string, handlers ...Handler) {
 
 	s.add(put, pattern, handlers)
 }
 
-func (s *server) WebSocket(pattern string, handlers ...Handler) {
+func (s *Server) WebSocket(pattern string, handlers ...Handler) {
 
 	i := len(handlers) - 1
 
 	s.add(get, pattern, append(handlers[:i], append([]Handler{wsMiddleware()}, handlers[i:]...)...))
 }
 
-func (s *server) add(method method, pattern string, handlers []Handler) {
+func (s *Server) add(method method, pattern string, handlers []Handler) {
 
 	handler := func(rw http.ResponseWriter, req *http.Request, params httprouter.Params) {
 
@@ -130,7 +130,7 @@ func (s *server) add(method method, pattern string, handlers []Handler) {
 	}
 }
 
-func (s *server) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
+func (s *Server) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 
 	s.router.PanicHandler = func(rw http.ResponseWriter, req *http.Request, err interface{}) {
 
