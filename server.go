@@ -1,12 +1,15 @@
 package http200ok
 
 import (
+	"fmt"
 	"github.com/julienschmidt/httprouter"
+	"log"
 	"net/http"
 	"sync"
 )
 
 type Handler func(c *Context)
+type ErrorHandler func(http.ResponseWriter, *http.Request, error)
 
 type method uint8
 
@@ -21,12 +24,43 @@ const (
 func New() *server {
 	return &server{
 		router: httprouter.New(),
+		errorHandler: func(rw http.ResponseWriter, _ *http.Request, err error) {
+
+			http.Error(rw, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+
+			log.Println(err)
+		},
+		notFoundHandler: func(rw http.ResponseWriter, req *http.Request) {
+
+			http.NotFound(rw, req)
+
+		},
+		methodNotAllowedHandler: func(rw http.ResponseWriter, _ *http.Request) {
+
+			http.Error(rw, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
+		},
 	}
 }
 
 type server struct {
 	router   *httprouter.Router
 	handlers []Handler
+
+	errorHandler            ErrorHandler
+	notFoundHandler         http.HandlerFunc
+	methodNotAllowedHandler http.HandlerFunc
+}
+
+func (s *server) SetErrorHandler(handler ErrorHandler) {
+	s.errorHandler = handler
+}
+
+func (s *server) SetNotFoundHandler(handler http.HandlerFunc) {
+	s.notFoundHandler = handler
+}
+
+func (s *server) SetMethodNotAllowedHandler(handler http.HandlerFunc) {
+	s.methodNotAllowedHandler = handler
 }
 
 func (s *server) Use(handler ...Handler) {
@@ -97,6 +131,14 @@ func (s *server) add(method method, pattern string, handlers []Handler) {
 }
 
 func (s *server) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
+
+	s.router.PanicHandler = func(rw http.ResponseWriter, req *http.Request, err interface{}) {
+
+		s.errorHandler(rw, req, fmt.Errorf("%v", err))
+	}
+
+	s.router.NotFound = s.notFoundHandler
+	s.router.MethodNotAllowed = s.methodNotAllowedHandler
 
 	s.router.ServeHTTP(rw, req)
 }

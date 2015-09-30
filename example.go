@@ -105,5 +105,20 @@ func main() {
 
 	})
 
+	app.Get("/panic/", func(c *http200ok.Context) {
+
+		panic("AAA")
+	})
+
+	app.SetErrorHandler(func(rw http.ResponseWriter, req *http.Request, err error) {
+
+		http.Error(rw, fmt.Sprintf("Panic: %s", err.Error()), http.StatusInternalServerError)
+	})
+
+	app.SetNotFoundHandler(func(rw http.ResponseWriter, req *http.Request) {
+
+		http.Error(rw, fmt.Sprintf("%s not found", req.RequestURI), http.StatusNotFound)
+	})
+
 	log.Fatal(http.ListenAndServe(":9009", app))
 }

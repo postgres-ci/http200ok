@@ -291,7 +291,29 @@ func TestServerNotFound(t *testing.T) {
 
 		assert.Equal(t, http.StatusNotFound, res.StatusCode)
 	}
+}
 
+func TestServerCustomNotFound(t *testing.T) {
+
+	app := New()
+	app.Get("/", func(c *Context) {})
+	app.SetNotFoundHandler(func(rw http.ResponseWriter, req *http.Request) {
+		http.Error(rw, "Custom404", http.StatusNotFound)
+	})
+
+	ts := httptest.NewServer(app)
+
+	client := &http.Client{}
+
+	if res, err := client.Get(ts.URL + "/404/"); assert.NoError(t, err) {
+
+		assert.Equal(t, http.StatusNotFound, res.StatusCode)
+
+		if body, err := ioutil.ReadAll(res.Body); assert.NoError(t, err) {
+
+			assert.Contains(t, string(body), "Custom404")
+		}
+	}
 }
 
 func TestServerMethodNotAllowed(t *testing.T) {
@@ -314,5 +336,84 @@ func TestServerMethodNotAllowed(t *testing.T) {
 	if assert.NoError(t, err) {
 
 		assert.Equal(t, http.StatusMethodNotAllowed, res.StatusCode)
+	}
+}
+
+func TestServerCustomMethodNotAllowed(t *testing.T) {
+
+	app := New()
+	app.Get("/", func(c *Context) {})
+	app.Post("/post/", func(c *Context) {})
+	app.SetMethodNotAllowedHandler(func(rw http.ResponseWriter, req *http.Request) {
+		http.Error(rw, "Custom405", http.StatusMethodNotAllowed)
+	})
+
+	ts := httptest.NewServer(app)
+
+	client := &http.Client{}
+
+	if res, err := client.Get(ts.URL + "/post/"); assert.NoError(t, err) {
+
+		assert.Equal(t, http.StatusMethodNotAllowed, res.StatusCode)
+
+		if body, err := ioutil.ReadAll(res.Body); assert.NoError(t, err) {
+
+			assert.Contains(t, string(body), "Custom405")
+		}
+	}
+
+	res, err := client.Post(ts.URL, "application/x-www-form-urlencoded", bytes.NewReader([]byte{}))
+
+	if assert.NoError(t, err) {
+
+		assert.Equal(t, http.StatusMethodNotAllowed, res.StatusCode)
+
+		if body, err := ioutil.ReadAll(res.Body); assert.NoError(t, err) {
+
+			assert.Contains(t, string(body), "Custom405")
+		}
+	}
+}
+
+func TestServerInternalServerError(t *testing.T) {
+
+	app := New()
+	app.Get("/", func(c *Context) {
+		panic("AAA")
+	})
+
+	ts := httptest.NewServer(app)
+
+	client := &http.Client{}
+
+	if res, err := client.Get(ts.URL); assert.NoError(t, err) {
+
+		assert.Equal(t, http.StatusInternalServerError, res.StatusCode)
+	}
+}
+
+func TestServerCustomInternalServerError(t *testing.T) {
+
+	app := New()
+	app.Get("/", func(c *Context) {
+		panic("Custom500")
+	})
+
+	app.SetErrorHandler(func(rw http.ResponseWriter, req *http.Request, err error) {
+		http.Error(rw, err.Error(), http.StatusInternalServerError)
+	})
+
+	ts := httptest.NewServer(app)
+
+	client := &http.Client{}
+
+	if res, err := client.Get(ts.URL); assert.NoError(t, err) {
+
+		assert.Equal(t, http.StatusInternalServerError, res.StatusCode)
+
+		if body, err := ioutil.ReadAll(res.Body); assert.NoError(t, err) {
+
+			assert.Contains(t, string(body), "Custom500")
+		}
 	}
 }
