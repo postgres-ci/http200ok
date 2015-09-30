@@ -69,7 +69,11 @@ func TestServerPost(t *testing.T) {
 
 	app := New()
 
+	var isPost bool
+
 	app.Post("/post/", func(c *Context) {
+
+		isPost = c.IsPost()
 
 		fmt.Fprint(c.Response, "PostTest")
 	})
@@ -82,15 +86,17 @@ func TestServerPost(t *testing.T) {
 
 	if assert.NoError(t, err) {
 
-		assert.Equal(t, http.StatusOK, res.StatusCode)
+		if assert.True(t, isPost) {
 
-		body, err := ioutil.ReadAll(res.Body)
+			assert.Equal(t, http.StatusOK, res.StatusCode)
 
-		if assert.NoError(t, err) {
+			body, err := ioutil.ReadAll(res.Body)
 
-			assert.Contains(t, string(body), "PostTest")
+			if assert.NoError(t, err) {
+
+				assert.Contains(t, string(body), "PostTest")
+			}
 		}
-
 	}
 }
 
@@ -193,9 +199,13 @@ func TestServerWebSocket(t *testing.T) {
 		Message string
 	}
 
+	var ws *websocket.Conn
+
 	app := New()
 
 	app.WebSocket("/ws/", func(c *Context) {
+
+		ws = c.WebSocket.Conn()
 
 		c.WebSocket.SendJSON(T{Message: "TestWebSocket"})
 	})
@@ -217,12 +227,53 @@ func TestServerWebSocket(t *testing.T) {
 
 		if assert.NoError(t, err) {
 
-			var message T
+			if assert.NotNil(t, ws) {
 
-			if err := websocket.JSON.Receive(ws, &message); assert.NoError(t, err) {
+				if assert.IsType(t, (*websocket.Conn)(nil), ws) {
 
-				assert.Equal(t, "TestWebSocket", message.Message)
+					var message T
+
+					if err := websocket.JSON.Receive(ws, &message); assert.NoError(t, err) {
+
+						assert.Equal(t, "TestWebSocket", message.Message)
+					}
+				}
 			}
+		}
+	}
+}
+
+func TestServerParams(t *testing.T) {
+
+	var (
+		expected = []string{"A", "B", "C", "D"}
+		params   []string
+	)
+
+	app := New()
+
+	app.Get("/params/:Param/", func(c *Context) {
+
+		params = append(params, c.RequestParam("Param"))
+	})
+
+	ts := httptest.NewServer(app)
+
+	client := &http.Client{}
+
+	for _, param := range expected {
+
+		if res, err := client.Get(ts.URL + "/params/" + param + "/"); assert.NoError(t, err) {
+
+			assert.Equal(t, http.StatusOK, res.StatusCode)
+		}
+	}
+
+	if assert.Len(t, params, len(expected)) {
+
+		for k, v := range expected {
+
+			assert.Equal(t, v, params[k])
 		}
 	}
 }
@@ -230,9 +281,7 @@ func TestServerWebSocket(t *testing.T) {
 func TestServerNotFound(t *testing.T) {
 
 	app := New()
-	app.Get("/", func(c *Context) {
-
-	})
+	app.Get("/", func(c *Context) {})
 
 	ts := httptest.NewServer(app)
 
@@ -248,12 +297,9 @@ func TestServerNotFound(t *testing.T) {
 func TestServerMethodNotAllowed(t *testing.T) {
 
 	app := New()
-	app.Get("/", func(c *Context) {
+	app.Get("/", func(c *Context) {})
+	app.Post("/post/", func(c *Context) {})
 
-	})
-	app.Post("/post/", func(c *Context) {
-
-	})
 	ts := httptest.NewServer(app)
 
 	client := &http.Client{}

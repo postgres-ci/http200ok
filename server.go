@@ -29,9 +29,9 @@ type server struct {
 	handlers []Handler
 }
 
-func (s *server) Use(handler Handler) {
+func (s *server) Use(handler ...Handler) {
 
-	s.handlers = append(s.handlers, handler)
+	s.handlers = append(s.handlers, handler...)
 }
 
 func (s *server) Delete(pattern string, handlers ...Handler) {
