@@ -2,12 +2,6 @@
 	"version": 0,
 	"dependencies": [
 		{
-			"importpath": "github.com/flosch/pongo2",
-			"repository": "https://github.com/flosch/pongo2",
-			"revision": "e42fe3d2b2c26371bbc2b2c2f6b5e9fd241db70b",
-			"branch": "master"
-		},
-		{
 			"importpath": "github.com/julienschmidt/httprouter",
 			"repository": "https://github.com/julienschmidt/httprouter",
 			"revision": "9034cff70da2ab5888417e40d23cd213a1587f16",
