@@ -23,3 +23,7 @@ _testmain.go
 *.test
 *.prof
 *.out
+
+vendor/github.com/davecgh/
+vendor/github.com/pmezard/
+vendor/github.com/stretchr/

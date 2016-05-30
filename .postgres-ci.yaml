@@ -1,0 +1,10 @@
+images:
+  - postgresci/golang:1.6
+entrypoint:
+  - /sbin/init
+commands:
+  - go version
+  - sh test_setup.sh
+  - echo ==== Tests ====
+tests:
+  - go test -cover -v github.com/postgres-ci/http200ok
